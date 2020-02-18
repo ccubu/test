@@ -1,0 +1,56 @@
+version: '3.6'
+
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - backend_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: somewordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+
+  redis:
+    image: redis:latest
+    networks:
+      - backend_redis
+
+  wordpress:
+    image: kharex/miwp:latest
+    volumes: 
+      - wordpress_data:/var/www/html
+    networks:
+      - backend_mysql
+      - backend_redis
+      - proxy
+    deploy:
+      replicas: 1
+      labels:
+        traefik.port: 80
+        traefik.frontend.rule: "Host:miwp.192.168.20.216.nip.io,miwp.192.168.20.217.nip.io,miwp.192.168.20.218.nip.io"
+        traefik.docker.network: 'proxy'
+
+volumes:
+  db_data: 
+    driver_opts:
+      type: "nfs"
+      o: "addr=192.168.20.218,nolock,soft,rw"
+      device: ":/srv/nfs/volumes/lluis_wp/mysql/"
+  wordpress_data:
+    driver_opts:
+      type: "nfs"
+      o: "addr=192.168.20.218,nolock,soft,rw"
+      device: ":/srv/nfs/volumes/lluis_wp/wp/"
+
+networks:
+  backend_mysql:
+    driver: 'overlay'
+  backend_redis:
+    driver: 'overlay'
+  proxy:
+    external: true
+
+
